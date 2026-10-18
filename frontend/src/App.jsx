@@ -3,6 +3,7 @@ import { Link, Navigate, Route, Routes, useNavigate, useParams } from "react-rou
 import { api, clearAuth, getToken, getUser, setAuth } from "./api.js";
 import { TbHomeSearch } from "react-icons/tb";
 import { TbSun, TbMoon } from "react-icons/tb";
+import { TbTrash } from "react-icons/tb";
 
 
 const CATS = ["electronics", "documents", "books", "clothing", "accessories", "keys", "other"];
@@ -173,6 +174,7 @@ function Report() {
 }
 
 function Detail() {
+  const nav = useNavigate();
   const { id } = useParams();
   const [item, setItem] = useState(null);
   const [claims, setClaims] = useState([]);
@@ -191,6 +193,13 @@ function Detail() {
   };
   const decide = async (cid, decision) => { await api(`/claims/${cid}/decide/`, { method: "POST", body: { decision } }); load(); };
   const resolve = async () => { await api(`/items/${id}/resolve/`, { method: "POST" }); load(); };
+  const remove = async () => {
+  if (!window.confirm("Are you sure you want to delete this item? This cannot be undone.")) return;
+  try {
+    await api(`/items/${id}/`, { method: "DELETE" });
+    nav("/dashboard");
+  } catch (x) { alert(x.message); }
+};
   return (
     <div className={wrap}>
       <div className={`${panel} flex-row flex-wrap gap-6`}>
@@ -201,7 +210,19 @@ function Detail() {
           <p>{item.description || "No description."}</p>
           <p className={muted}>📍 {item.location} · 📅 {item.date} · 🏷️ {item.category}</p>
           <p className={muted}>Posted by {item.reporter_name}{item.contact && ` · 📞 ${item.contact}`}</p>
-          {item.is_owner && item.status !== "resolved" && <button className={btn} onClick={resolve}>Mark as resolved</button>}
+          {item.is_owner && (
+  <div className="flex flex-wrap gap-2 pt-2">
+    {item.status !== "resolved" && (
+      <button className={btn} onClick={resolve}>Mark as resolved</button>
+    )}
+    <button
+      onClick={remove}
+      className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-red-600 px-5 py-2.5 font-semibold text-white transition hover:bg-red-700 active:scale-95"
+    >
+      <TbTrash className="text-lg" /> Delete
+    </button>
+  </div>
+)}
         </div>
       </div>
       {!item.is_owner && getToken() && item.status === "open" && (
